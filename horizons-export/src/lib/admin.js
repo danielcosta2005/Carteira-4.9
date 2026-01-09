@@ -8,6 +8,6 @@ export async function adminUpdateMember({ memberId, password, projectId, role })
   return invokeAdmin('admin-update-member', { memberId, password, projectId, role });
 }
 
-export async function adminRemoveMember({ Id, projectId }) {
+export async function adminRemoveMember({ memberId, projectId }) {
   return invokeAdmin('admin-remove-member', { memberId, projectId });
 }
