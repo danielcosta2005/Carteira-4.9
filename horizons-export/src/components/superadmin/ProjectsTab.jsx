@@ -47,24 +47,22 @@ import React, { useState, useEffect, useCallback } from 'react';
     };
 
     const ProjectFormModal = ({ project, isOpen, onClose, onSave }) => {
-      const [formData, setFormData] = useState({ id: '', name: '', description: '' });
+      const [formData, setFormData] = useState({ name: '', description: '' });
       const [logoFile, setLogoFile] = useState(null);
       const [isSubmitting, setIsSubmitting] = useState(false);
       const { toast } = useToast();
 
       useEffect(() => {
         if (project) {
-          setFormData({ id: project.id || '', name: project.name || '', description: project.description || '' });
+          setFormData({ 
+            name: project.name || '',
+            description: project.description || '' 
+          });
         } else {
-          setFormData({ id: '', name: '', description: '' });
+          setFormData({ name: '', description: '' });
         }
         setLogoFile(null);
       }, [project, isOpen]);
-
-      const handleIdChange = (e) => {
-        const value = e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-        setFormData({ ...formData, id: value });
-      };
 
       const handleFileChange = (e) => {
         if (e.target.files.length > 0) {
@@ -74,23 +72,30 @@ import React, { useState, useEffect, useCallback } from 'react';
 
       const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!project && !formData.id) {
-            toast({ title: "Erro de Validação", description: "O campo ID é obrigatório.", variant: "destructive" });
-            return;
-        }
         setIsSubmitting(true);
+
         try {
           let logo_url = project?.logo_url;
+
           if (logoFile) {
             const { publicUrl } = await uploadProjectLogo(logoFile);
             logo_url = publicUrl;
           }
           
-          const payload = { ...formData, logo_url };
+          const payload = {
+            name: formData.name,
+            description: formData.description,
+            logo_url,
+          };
+
           await onSave(payload);
           onClose();
         } catch (error) {
-          toast({ title: "Erro ao salvar projeto", description: error.message, variant: "destructive" });
+          toast({ 
+            title: "Erro ao salvar projeto", 
+            description: error.message,
+            variant: "destructive" 
+          });
         } finally {
           setIsSubmitting(false);
         }
@@ -103,12 +108,6 @@ import React, { useState, useEffect, useCallback } from 'react';
               <DialogTitle>{project ? 'Editar Projeto' : 'Novo Projeto'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!project && (
-                <div>
-                  <Label htmlFor="id">ID (obrigatório)</Label>
-                  <Input id="id" value={formData.id} onChange={handleIdChange} disabled={isSubmitting} placeholder="ex: nome-da-loja" />
-                </div>
-              )}
               <div><Label htmlFor="name">Nome</Label><Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} disabled={isSubmitting} /></div>
               <div><Label htmlFor="description">Descrição</Label><Input id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} disabled={isSubmitting} /></div>
               <div><Label htmlFor="logo">Logo</Label><Input id="logo" type="file" onChange={handleFileChange} accept="image/png, image/jpeg" disabled={isSubmitting} /></div>

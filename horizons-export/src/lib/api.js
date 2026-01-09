@@ -19,10 +19,8 @@ export async function createProject(payload) {
         throw new Error(invokeError.message);
     }
 
-    if (data && data.error) {
-        const err = new Error(data.error);
-        err.details = data.details;
-        throw err;
+    if (data?.error) {
+        throw new Error(data.error);
     }
     
     return data;
