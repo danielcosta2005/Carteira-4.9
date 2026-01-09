@@ -24,7 +24,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { listMembers } from '@/lib/api';
-import { adminCreateUser, adminUpdateUser, adminRemoveMember } from '@/lib/admin';
+import { adminCreateMember, adminUpdateMember, adminRemoveMember } from '@/lib/admin';
 
 const MembersTab = ({ projectId }) => {
   const [members, setMembers] = useState([]);
@@ -81,7 +81,7 @@ const MembersTab = ({ projectId }) => {
     }
     setIsSubmitting(true);
     try {
-      const result = await adminCreateUser({
+      const result = await adminCreateMember({
         projectId,
         email: createForm.email.trim(),
         password: createForm.password || undefined,
@@ -118,8 +118,8 @@ const MembersTab = ({ projectId }) => {
     }
     setIsSubmitting(true);
     try {
-      await adminUpdateUser({
-        userId: memberToEdit.user_id,
+      await adminUpdateMember({
+        memberId: memberToEdit.user_id,
         projectId,
         role: editForm.role,
         password: editForm.newPassword || undefined,
@@ -139,7 +139,7 @@ const MembersTab = ({ projectId }) => {
     if (!memberToRemove) return;
     setIsSubmitting(true);
     try {
-      await adminRemoveMember({ projectId, userId: memberToRemove.user_id });
+      await adminRemoveMember({ projectId, memberId: memberToRemove.user_id });
       toast({ title: "Membro removido", description: `${memberToRemove.email} foi removido do projeto.` });
       setMemberToRemove(null);
       await fetchMembers();
