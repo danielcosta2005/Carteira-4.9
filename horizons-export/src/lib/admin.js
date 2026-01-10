@@ -27,5 +27,19 @@ export async function adminUpdateMember({ memberId, password, projectId, role })
 }
 
 export async function adminRemoveMember({ memberId, projectId }) {
-  return invokeAdmin('admin-remove-member', { memberId, projectId });
+  const { data, error } = await supabase.functions.invoke('admin-remove-member', {
+    body: { memberId, projectId },
+  });
+
+  if (error) {
+    console.error('invoke admin-remove-member error:', error);
+    throw new Error(error.message || 'Falha ao chamar edge function');
+  }
+
+  if (!data || data.error) {
+    console.error('edge returned error payload:', data);
+    throw new Error(data?.error || 'Edge function retornou resposta inválida');
+  }
+
+  return data;
 }
