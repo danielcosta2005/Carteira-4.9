@@ -15,12 +15,26 @@ import { useAuth } from '@/contexts/SupabaseAuthContext';
 
 const SuperadminDashboard = () => {
   const { user, signOut } = useAuth();
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedProject, setSelectedProject] = useState(() => {
+    const savedProject = sessionStorage.getItem('superadmin_selected_project')
+    return savedProject ? JSON.parse(savedProject) : null;
+  });
+
+  const [activeTab, setActiveTab] = useState(() => {
+    return sessionStorage.getItem('superadmin_active_tab') || 'dashboard';
+  });
+
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    sessionStorage.setItem('superadmin_active_tab', value);
+  }
 
   const handleSelectProject = (project) => {
     setSelectedProject(project);
     setActiveTab('wallet');
+
+    sessionStorage.setItem('superadmin_selected_project', JSON.stringify(project));
+    sessionStorage.setItem('superadmin_active_tab', 'wallet');
   };
 
   const handleBackToProjects = () => {
@@ -81,7 +95,7 @@ const SuperadminDashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
               <TabsList className="grid w-full grid-cols-3 sm:grid-cols-4 md:grid-cols-7 lg:w-auto lg:inline-grid">
                 {TABS.map(tab => (
                   <TabsTrigger key={tab.value} value={tab.value} className="gap-2" disabled={tab.disabled}>
