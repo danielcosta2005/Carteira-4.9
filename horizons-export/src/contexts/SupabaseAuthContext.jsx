@@ -11,6 +11,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
       const [role, setRole] = useState(null);
       const [projectId, setProjectId] = useState(null);
       const [loading, setLoading] = useState(true);
+      const [initialized, setInitialized] = useState(false);
       const navigate = useNavigate();
       const location = useLocation();
       const { toast } = useToast();
@@ -56,7 +57,8 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
     
       useEffect(() => {
         const handleAuthStateChange = async (event, currentSession) => {
-          setLoading(true);
+          if (!initialized) setInitialized(true);
+
           const currentUser = currentSession?.user ?? null;
           
           setUser(currentUser);
@@ -81,6 +83,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
             }
           }
           setLoading(false);
+          setInitialized(true);
         };
     
         const checkInitialSession = async () => {
@@ -115,7 +118,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
         return () => {
           authListener?.subscription?.unsubscribe();
         };
-      }, [getProfileAndProject, navigate, location.pathname]);
+      }, [getProfileAndProject, navigate, location.pathname, initialized]);
     
       const signUp = useCallback(async (email, password, options) => {
         const { error } = await supabase.auth.signUp({
@@ -167,6 +170,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
         user,
         session,
         loading,
+        initialized,
         role,
         projectId,
         signUp,

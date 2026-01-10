@@ -15,9 +15,9 @@ import React from 'react';
     import PassPage from '@/pages/PassPage';
 
     const AuthRedirect = () => {
-      const { role, loading, user } = useAuth();
+      const { role, loading, initialized, user } = useAuth();
 
-      if (loading) {
+      if (loading && !initialized) {
         return (
           <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -25,7 +25,7 @@ import React from 'react';
         );
       }
 
-      if (!user) {
+      if (!user && !loading) {
         return <Navigate to="/login" replace />;
       }
 
