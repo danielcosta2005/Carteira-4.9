@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
     import { Helmet } from 'react-helmet';
     import { motion } from 'framer-motion';
     import { LogOut, QrCode, ScanLine, BarChart3, Wallet, Users, History, Bell } from 'lucide-react';
@@ -14,6 +14,15 @@ import React from 'react';
 
     const RestaurantDashboard = () => {
       const { user, projectId, signOut } = useAuth();
+
+      const [activeTab, setActiveTab] = useState(() => {
+        return sessionStorage.getItem('restaurant_active_tab') || 'kpis';
+      });
+
+      const handleTabChange = (value) => {
+        setActiveTab(value);
+        sessionStorage.setItem('restaurant_active_tab', value);
+      }
 
       return (
         <>
@@ -68,7 +77,7 @@ import React from 'react';
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5 }}
                 >
-                  <Tabs defaultValue="kpis" className="space-y-6">
+                  <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
                     <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 lg:w-auto lg:inline-grid">
                       <TabsTrigger value="kpis" className="gap-2">
                         <BarChart3 className="w-4 h-4" />
