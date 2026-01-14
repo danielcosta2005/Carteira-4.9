@@ -194,7 +194,7 @@ const WalletConfigTab = ({ projectId, onBack }) => {
         if (!file || !uploadingKey) return;
         
         setIsProcessing(true);
-        const path = `public/${projectId || 'temp'}/${uploadingKey}-${Date.now()}-${file.name}`;
+        const path = `${projectId || 'temp'}/${uploadingKey}-${Date.now()}-${file.name}`;
         
         try {
             const { error: uploadError } = await supabase.storage.from('pass-assets').upload(path, file, { upsert: true });
