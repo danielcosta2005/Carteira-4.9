@@ -66,6 +66,12 @@ const PassPreview = ({ formState }) => {
     );
 };
 
+const normalizePassRecord = (pass) => ({
+    ...pass,
+    universal_url: pass.universal_url || pass.qr_url || null,
+    google_jwt: pass.google_jwt || pass.google_url || null,
+});
+
 const PassesList = ({ passes, loading, onAction }) => (
      <div className="rounded-lg border">
         <table className="w-full text-sm">
@@ -79,19 +85,27 @@ const PassesList = ({ passes, loading, onAction }) => (
             <tbody>
                 {loading && <tr><td colSpan="5" className="text-center p-8"><Loader2 className="mx-auto h-6 w-6 animate-spin text-gray-400" /></td></tr>}
                 {!loading && passes.length === 0 && <tr><td colSpan="5" className="text-center p-8 text-gray-500">Nenhum passe emitido para este projeto.</td></tr>}
-                {!loading && passes.map((pass) => (
-                    <tr key={pass.id} className="border-t dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-                        <td className="p-3 font-medium">{pass.title}</td>
-                        <td className="p-3">{pass.type}</td>
-                        <td className="p-3">{new Date(pass.created_at).toLocaleDateString()}</td>
-                        <td className="p-3"><span className="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">{pass.status || 'Ativo'}</span></td>
-                        <td className="p-3 flex justify-center gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => onAction('copy', pass.universal_url)} title="Copiar Link Único"><LinkIcon className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="sm" onClick={() => onAction('apple', pass.apple_url)} title="Abrir Link Apple"><Apple className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="sm" onClick={() => onAction('google', `https://pay.google.com/gp/v/save/${pass.google_jwt}`)} title="Abrir Link Google"><Smartphone className="w-4 h-4" /></Button>
-                        </td>
-                    </tr>
-                ))}
+                {!loading && passes.map((pass) => {
+                    const googleUrl = pass.google_jwt?.startsWith('http')
+                        ? pass.google_jwt
+                        : pass.google_jwt
+                            ? `https://pay.google.com/gp/v/save/${pass.google_jwt}`
+                            : null;
+
+                    return (
+                        <tr key={pass.id} className="border-t dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
+                            <td className="p-3 font-medium">{pass.title}</td>
+                            <td className="p-3">{pass.type}</td>
+                            <td className="p-3">{new Date(pass.created_at).toLocaleDateString()}</td>
+                            <td className="p-3"><span className="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">{pass.status || 'Ativo'}</span></td>
+                            <td className="p-3 flex justify-center gap-1">
+                                <Button variant="ghost" size="sm" onClick={() => onAction('copy', pass.universal_url)} title="Copiar Link Único"><LinkIcon className="w-4 h-4" /></Button>
+                                <Button variant="ghost" size="sm" onClick={() => onAction('apple', pass.apple_url)} title="Abrir Link Apple"><Apple className="w-4 h-4" /></Button>
+                                <Button variant="ghost" size="sm" onClick={() => onAction('google', googleUrl)} title="Abrir Link Google"><Smartphone className="w-4 h-4" /></Button>
+                            </td>
+                        </tr>
+                    );
+                })}
             </tbody>
         </table>
     </div>
@@ -153,9 +167,25 @@ const WalletConfigTab = ({ projectId, onBack }) => {
         if (!pId) { setPasses([]); return; }
         setLoadingPasses(true);
         try {
-            const { data, error } = await supabase.from('v_passes').select('*').eq('project_id', pId).order('created_at', { ascending: false });
-            if (error) throw error;
-            setPasses(data || []);
+            const { data: viewData, error: viewError } = await supabase
+                .from('v_passes')
+                .select('*')
+                .eq('project_id', pId)
+                .order('created_at', { ascending: false });
+
+            if (viewData?.length) {
+                setPasses(viewData.map(normalizePassRecord));
+                return;
+            }
+
+            const { data: tableData, error: tableError } = await supabase
+                .from('passes')
+                .select('*')
+                .eq('project_id', pId)
+                .order('created_at', { ascending: false });
+
+            if (tableError && viewError) throw tableError;
+            setPasses((tableData || []).map(normalizePassRecord));
         } catch (error) {
             toast({ title: 'Erro ao buscar passes', description: error.message, variant: 'destructive' });
         } finally { setLoadingPasses(false); }
@@ -230,11 +260,11 @@ const WalletConfigTab = ({ projectId, onBack }) => {
                 type: formState.type,
                 title: formState.title,
                 description: formState.description,
+                colors: formState.colors,
+                images: formState.images,
                 fields: Object.fromEntries(
                     formState.dataFields.map(f => [f.key, formState.sampleValues?.[f.key] ?? ''])
                 )
-                // Cores e imagens não são mais enviadas diretamente pelo front,
-                // a função create-pass se encarrega de gerá-las ou usar defaults.
             };
 
             const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-pass`, {
