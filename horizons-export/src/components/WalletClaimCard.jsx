@@ -1,23 +1,59 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+console.log("✅ WalletClaimCard renderizou", window.location.href);
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
-import { Wallet, LogIn } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
 
 export default function WalletClaimCard() {
-  const { projectId } = useParams();
+  const [searchParams] = useSearchParams();
+  const c = searchParams.get('c'); // short_code
   const { toast } = useToast();
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  const supaUrl = import.meta.env.VITE_SUPABASE_URL;
+
+  const goUniversal = (code) => {
+    window.location.href = `${supaUrl}/functions/v1/universal-link?c=${encodeURIComponent(code)}`;
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session && c) {
+          goUniversal(c);
+          return;
+        }
+      } finally {
+        setCheckingSession(false);
+      }
+    })();
+  }, [c]);
 
   const handleLogin = async () => {
+    if (!c) {
+      toast({
+        title: "QR inválido",
+        description: "Esse link não contém o código do passe (c).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Volta pro /auth/callback com next=/wallet/claim?c=...
+    const next = `/claim?c=${encodeURIComponent(c)}`;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?projectId=${projectId}`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         scopes: "openid profile email"
       }
     });
+
     if (error) {
       console.error("❌ Erro no login Google:", error);
       toast({
@@ -27,6 +63,10 @@ export default function WalletClaimCard() {
       });
     }
   };
+
+  if (checkingSession) {
+    return null; // ou um loader bonitinho
+  }
 
   return (
     <motion.div
@@ -39,16 +79,25 @@ export default function WalletClaimCard() {
         <div className="bg-gradient-to-br from-purple-600 to-indigo-600 p-4 rounded-full shadow-lg">
           <Wallet className="h-10 w-10 text-white" />
         </div>
+
         <div className="space-y-2">
           <h1 className="text-3xl font-bold text-gray-800">Resgate seu Passe</h1>
-          <p className="text-gray-600 max-w-xs">Faça login com sua conta Google para adicionar seu passe de fidelidade digital à sua carteira.</p>
+          <p className="text-gray-600 max-w-xs">
+            Faça login com sua conta Google para adicionar seu passe de fidelidade digital à sua carteira.
+          </p>
         </div>
-        <Button 
-          size="lg" 
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-3 py-7 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-shadow" 
+
+        <Button
+          size="lg"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-3 py-7 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-shadow"
           onClick={handleLogin}
+          disabled={!c}
         >
-          <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" className="h-7 w-7 bg-white rounded-full p-1" />
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
+            alt="Google"
+            className="h-7 w-7 bg-white rounded-full p-1"
+          />
           <span>Entrar com Google</span>
         </Button>
       </div>

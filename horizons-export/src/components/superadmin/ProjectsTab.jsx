@@ -38,7 +38,7 @@ import React, { useState, useEffect, useCallback } from 'react';
             <a href={qrUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-mono text-gray-500 truncate hover:text-purple-600 hover:underline">
               {qrUrl}
             </a>
-            <a href={qrUrl} target="_blank" rel="noopener noreferrer">
+            <a href={qrUrl} target="_blank" rel="noopener noreferrer">  
               <QrCode className="h-5 w-5 text-purple-600 hover:text-purple-800" />
             </a>
           </div>

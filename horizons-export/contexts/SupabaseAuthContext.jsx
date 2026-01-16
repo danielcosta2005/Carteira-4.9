@@ -76,8 +76,14 @@ export const AuthProvider = ({ children }) => {
         
         const isCallbackPage = location.pathname.startsWith('/auth/callback');
         const isPassPage = location.pathname.startsWith('/c/');
+        
+        const isPublicClaim = location.pathname.startsWith('/claim');
+        const isAuthLogin = location.pathname.startsWith('/auth/login');
+        const isPublicLogin = location.pathname.startsWith('/login');
 
-        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !isCallbackPage && !isPassPage) {
+        const shouldSkipRedirect = isCallbackPage || isPassPage || isPublicClaim || isAuthLogin || isPublicLogin;
+
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !shouldSkipRedirect) {
           if (newRole === 'superadmin') {
             navigate('/admin', { replace: true });
           } else if (newRole === 'establishment') {

@@ -17,6 +17,12 @@ export default function AuthCallback() {
         setStatus("Login bem-sucedido! Preparando seu passe...");
         const searchParams = new URLSearchParams(location.search);
         const projectId = searchParams.get('projectId');
+        const next = searchParams.get('next');
+
+        if (next) {
+          navigate(next, {replace: true});
+          return;
+        }
         
         if (projectId) {
             const sub = session.user?.id;
