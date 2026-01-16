@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Apple, Smartphone, Upload, PlusCircle, Trash2, Link as LinkIcon, Save, Settings } from 'lucide-react';
+import { Loader2, Apple, Smartphone, Upload, Link as LinkIcon, Save, Settings } from 'lucide-react';
 import GenerationResultModal from '@/components/superadmin/wallet/GenerationResultModal';
 import { QRCode } from 'react-qrcode-logo';
 
@@ -25,6 +25,7 @@ const ColorInput = ({ label, ...props }) => (
 );
 
 const PassPreview = ({ formState }) => {
+    const [platform, setPlatform] = useState('apple');
     const {
         title = 'Título do Passe',
         type = 'generic',
@@ -35,34 +36,109 @@ const PassPreview = ({ formState }) => {
     } = formState;
 
     const { background = '#6c5ce7', text = '#ffffff', label = '#ffffff' } = colors;
-    const { logo: logoUrl } = images;
+    const { logo: logoUrl, googleHero, appleStrip } = images;
     
     const pointsFieldKey = dataFields.find(f => f.key.toLowerCase().includes('points'))?.key;
     const pointsValue = pointsFieldKey ? (sampleValues[pointsFieldKey] || '123') : '123';
 
     return (
-        <div className="sticky top-24">
-            <div style={{ backgroundColor: background }} className="w-full max-w-sm mx-auto rounded-2xl p-4 flex flex-col text-white shadow-2xl font-sans transition-colors duration-300 min-h-[420px]">
-                <header className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-3">
-                         {logoUrl ? <img src={logoUrl} alt="logo" className="w-10 h-10 rounded-full bg-white object-contain p-1" /> : <div className="w-10 h-10 rounded-full bg-white/20"></div>}
-                        <h3 style={{color: text}} className="font-bold text-lg">{title}</h3>
-                    </div>
-                    <p style={{color: label}} className="text-xs uppercase font-semibold">{type}</p>
-                </header>
-                <main className="flex-grow flex flex-col items-center justify-center text-center">
-                    <p style={{color: label}} className="text-sm uppercase tracking-wider">Pontos</p>
-                    <p style={{color: text}} className="text-7xl font-bold">{pointsValue}</p>
-                </main>
-                <footer className="mt-4 bg-white rounded-lg p-2 flex items-center justify-center">
-                    <QRCode value={formState.universal_url || "https://example.com"} size={80} quietZone={0} />
-                </footer>
+    <div className="sticky top-24">
+        <div
+        style={{ backgroundColor: background }}
+        className="w-full max-w-sm mx-auto rounded-2xl flex flex-col text-white shadow-2xl font-sans transition-colors duration-300 overflow-hidden"
+        >
+        {/* Conteúdo com padding */}
+        <div className="p-4 flex flex-col flex-1 min-h-[420px]">
+            <header className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-3">
+                {logoUrl ? (
+                <img
+                    src={logoUrl}
+                    alt="logo"
+                    className="w-10 h-10 rounded-full bg-white object-contain p-1"
+                />
+                ) : (
+                <div className="w-10 h-10 rounded-full bg-white/20"></div>
+                )}
+                <h3 style={{ color: text }} className="font-bold text-lg">
+                {title}
+                </h3>
             </div>
-            <div className="mt-4 flex items-center justify-center gap-2">
-                <Button size="sm" variant="secondary" className="rounded-full gap-2" disabled><Apple className="w-4 h-4" /> Apple</Button>
-                <Button size="sm" variant="secondary" className="rounded-full gap-2" disabled><Smartphone className="w-4 h-4" /> Google</Button>
-            </div>
+            <p style={{ color: label }} className="text-xs uppercase font-semibold">
+                {type}
+            </p>
+            </header>
+
+            {/* ✅ Apple strip full-bleed (sem espaçamento lateral) */}
+            {platform === "apple" && (
+            appleStrip ? (
+                <div className="-mx-4 mb-4">
+                <img
+                    src={appleStrip}
+                    alt="Apple Strip"
+                    className="w-full h-28 object-cover"
+                />
+                </div>
+            ) : (
+                <div className="-mx-4 mb-4">
+                <div className="w-full h-28 bg-white/15" />
+                </div>
+            )
+            )}
+
+            <main className="flex-grow flex flex-col items-start justify-center text-left">
+            <p style={{ color: label }} className="text-sm uppercase tracking-wider">
+                Pontos
+            </p>
+            <p style={{ color: text }} className="text-6xl font-bold">
+                {pointsValue}
+            </p>
+            </main>
+
+            <footer className="mt-4 bg-white rounded-lg p-2 flex flex-col items-center justify-center gap-2">
+            <QRCode value={formState.universal_url || "https://example.com"} size={80} quietZone={0} />
+            {platform === "google" && (
+                <span className="text-xs text-gray-600">
+                f5616550-f996-4688-8158-70f71f38...
+                </span>
+            )}
+            </footer>
         </div>
+
+        {/* ✅ Google hero embaixo (fora do padding) */}
+        {platform === "google" && (
+            googleHero ? (
+            <img
+                src={googleHero}
+                alt="Google Hero"
+                className="w-full h-32 object-cover"
+            />
+            ) : (
+            <div className="w-full h-32 bg-white/15"></div>
+            )
+        )}
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-2">
+        <Button
+            size="sm"
+            variant={platform === "apple" ? "default" : "secondary"}
+            className="rounded-full gap-2"
+            onClick={() => setPlatform("apple")}
+        >
+            <Apple className="w-4 h-4" /> Apple
+        </Button>
+
+        <Button
+            size="sm"
+            variant={platform === "google" ? "default" : "secondary"}
+            className="rounded-full gap-2"
+            onClick={() => setPlatform("google")}
+        >
+            <Smartphone className="w-4 h-4" /> Google
+        </Button>
+        </div>
+    </div>
     );
 };
 
@@ -111,8 +187,8 @@ const WalletConfigTab = ({ projectId, onBack }) => {
         description: '',
         colors: { background: '#6c5ce7', label: '#ffffff', text: '#ffffff' },
         images: { logo: '', icon: '', googleHero: '', appleStrip: '' },
-        dataFields: [{ key: 'displayName', label: 'Nome do Cliente' }],
-        sampleValues: { displayName: 'Fulano de Tal' }
+        dataFields: [],
+        sampleValues: {}
     });
 
     const fileInputRef = useRef(null);
@@ -212,13 +288,6 @@ const WalletConfigTab = ({ projectId, onBack }) => {
         }
     };
     
-    const addDataField = () => handleFormChange('dataFields', [...formState.dataFields, { key: '', label: '' }]);
-    const updateDataField = (index, prop, value) => {
-        const newFields = [...formState.dataFields];
-        newFields[index][prop] = value;
-        handleFormChange('dataFields', newFields);
-    };
-    const removeDataField = (index) => handleFormChange('dataFields', formState.dataFields.filter((_, i) => i !== index));
 
     const handleGenerateLink = async () => {
         setIsProcessing(true);
@@ -299,19 +368,7 @@ const WalletConfigTab = ({ projectId, onBack }) => {
                             </div>
                          </div>
                     </div>
-                    {/* Data Fields */}
-                     <div className="space-y-4 p-4 border rounded-lg">
-                        <h2 className="font-semibold text-lg">Campos de Dados & Valores de Amostra</h2>
-                        {(formState.dataFields || []).map((field, i) => (
-                            <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                                <Input value={field.key} onChange={e => updateDataField(i, 'key', e.target.value)} placeholder="key (ex: displayName)" className="col-span-3"/>
-                                <Input value={field.label} onChange={e => updateDataField(i, 'label', e.target.value)} placeholder="Label (ex: Nome)" className="col-span-3"/>
-                                <Input value={formState.sampleValues?.[field.key] || ''} onChange={e => handleFormChange(`sampleValues.${field.key}`, e.target.value)} placeholder="Valor de Exemplo" className="col-span-5"/>
-                                <Button size="icon" variant="ghost" onClick={() => removeDataField(i)} className="col-span-1 text-red-500"><Trash2 className="w-4 h-4"/></Button>
-                            </div>
-                        ))}
-                        <Button variant="outline" size="sm" onClick={addDataField}><PlusCircle className="w-4 h-4 mr-2"/> Adicionar Campo</Button>
-                    </div>
+                    
                     {/* Actions */}
                     <div className="flex justify-center items-center gap-4 py-6">
                         <Button size="lg" onClick={handleSaveDefaults} disabled={isProcessing} variant="outline">
