@@ -123,14 +123,19 @@ const PassPreview = ({ formState }) => {
             </p>
           </main>
 
-          <footer className="mt-4 bg-white rounded-lg p-2 flex flex-col items-center justify-center gap-2">
-            <QRCode value={formState.universal_url || "https://example.com"} size={80} quietZone={0} />
-            {platform === "google" && (
-              <span className="text-xs text-gray-600">
-                f5616550-f996-4688-8158-70f71f38...
-              </span>
-            )}
-          </footer>
+            <footer className="mt-6 flex items-center justify-center">
+              <div className="bg-white p-2 rounded-md">
+                <QRCode
+                  value={formState.universal_url || "https://example.com"}
+                  size={96}
+                  quietZone={0}
+                  bgColor="transparent"
+                />
+              </div>
+            </footer>
+
+
+
         </div>
 
         {/* ✅ Google hero embaixo (fora do padding) */}
