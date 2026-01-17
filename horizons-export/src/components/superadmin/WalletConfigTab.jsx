@@ -118,7 +118,7 @@ const PassPreview = ({ formState }) => {
             <p style={{ color: label }} className="text-sm uppercase tracking-wider">
               Pontos
             </p>
-            <p style={{ color: text }} className="text-6xl font-bold">
+            <p style={{ color: text }} className="text-4xl font-bold leading-none">
               {pointsValue}
             </p>
           </main>
