@@ -69,6 +69,7 @@ export default function WalletClaimCard() {
   }
 
   return (
+  <div className="flex h-screen items-center justify-center">
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -79,14 +80,12 @@ export default function WalletClaimCard() {
         <div className="bg-gradient-to-br from-purple-600 to-indigo-600 p-4 rounded-full shadow-lg">
           <Wallet className="h-10 w-10 text-white" />
         </div>
-
         <div className="space-y-2">
           <h1 className="text-3xl font-bold text-gray-800">Resgate seu Passe</h1>
           <p className="text-gray-600 max-w-xs">
             Faça login com sua conta Google para adicionar seu passe de fidelidade digital à sua carteira.
           </p>
         </div>
-
         <Button
           size="lg"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-3 py-7 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-shadow"
@@ -102,5 +101,6 @@ export default function WalletClaimCard() {
         </Button>
       </div>
     </motion.div>
+  </div> 
   );
 }
