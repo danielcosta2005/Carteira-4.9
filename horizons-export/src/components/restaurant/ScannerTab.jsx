@@ -6,6 +6,8 @@ import { toast } from "@/components/ui/use-toast";
 import QrScanner from "qr-scanner";
 import { supabase } from "@/lib/supabaseClient";
 
+QrScanner.WORKER_PATH = new URL("qr-scanner/qr-scanner-worker.min.js", import.meta.url).toString();
+
 // Aceita:
 // - token puro (pass_token)
 // - URL que contenha token em ?token=... ou ?t=... ou ?s=...
@@ -14,7 +16,6 @@ function extractPassToken(qrData) {
   const raw = String(qrData ?? "").trim();
   if (!raw) return null;
 
-  // se não parece URL, assume token
   if (!raw.startsWith("http://") && !raw.startsWith("https://")) {
     return raw;
   }
@@ -31,13 +32,11 @@ function extractPassToken(qrData) {
       sp.get("pt");
     if (byQuery) return String(byQuery).trim();
 
-    // fallback: último segmento do path
     const parts = u.pathname.split("/").filter(Boolean);
     if (parts.length) return parts[parts.length - 1];
 
     return null;
   } catch {
-    // se for uma string “quase URL” ou lixo, tenta usar como token
     return raw;
   }
 }
@@ -52,15 +51,23 @@ function formatBRDateShort(iso) {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+function normalizeScanResult(result) {
+  if (!result) return "";
+  if (typeof result === "string") return result;
+  return result?.data || result?.rawValue || result?.text || "";
+}
+
 const ScannerTab = ({ projectId: establishmentProjectId }) => {
   const videoRef = useRef(null);
   const [scanner, setScanner] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lastScanRaw, setLastScanRaw] = useState("");
+  const [lastScanToken, setLastScanToken] = useState("");
 
   const onScan = useCallback(
-    async (txt) => {
+    async (result) => {
       if (isProcessing) return;
 
       setIsProcessing(true);
@@ -68,7 +75,15 @@ const ScannerTab = ({ projectId: establishmentProjectId }) => {
       setIsScanning(false);
 
       try {
+        const txt = normalizeScanResult(result);
         const passToken = extractPassToken(txt);
+
+        setLastScanRaw(txt);
+        setLastScanToken(passToken || "");
+
+        console.info("[ScannerTab] QR lido:", { raw: txt, token: passToken });
+        console.info("[ScannerTab] projectId enviado:", establishmentProjectId);
+
         if (!passToken) {
           throw new Error("QR Code inválido: não encontrei o token do passe.");
         }
@@ -83,11 +98,10 @@ const ScannerTab = ({ projectId: establishmentProjectId }) => {
           throw new Error("Sessão expirada. Faça login novamente.");
         }
 
-        // ✅ força Authorization header (isso mata o bug do “non-2xx sem log”)
         const { data, error } = await supabase.functions.invoke("scanner-visit", {
           body: {
             projectId: establishmentProjectId,
-            qrData: passToken, // envia o token puro
+            qrData: passToken,
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -96,7 +110,16 @@ const ScannerTab = ({ projectId: establishmentProjectId }) => {
 
         if (error) throw error;
         if (!data) throw new Error("Resposta vazia da Edge Function.");
-        if (data.error) throw new Error(data.message || data.error);
+
+        if (data.error) {
+          // se backend mandar mismatch, mostrar informação útil
+          if (data.error === "wrong_project") {
+            throw new Error(
+              `${data.message}\n\nEsperado: ${data.expected_project_id}\nRecebido: ${data.received_project_id}`
+            );
+          }
+          throw new Error(data.message || data.error);
+        }
 
         setScanResult({ success: true, data });
 
@@ -128,7 +151,7 @@ const ScannerTab = ({ projectId: establishmentProjectId }) => {
     if (videoRef.current && !scanner) {
       const qrScanner = new QrScanner(
         videoRef.current,
-        (result) => onScan(result.data),
+        (result) => onScan(result),
         { highlightScanRegion: true, highlightCodeOutline: true }
       );
       setScanner(qrScanner);
@@ -179,7 +202,11 @@ const ScannerTab = ({ projectId: establishmentProjectId }) => {
             {isProcessing && <Loader2 className="w-16 h-16 animate-spin text-purple-400" />}
 
             {scanResult?.success === true && (
-              <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="text-center"
+              >
                 <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
                 <h3 className="text-2xl font-bold">Visita Registrada!</h3>
                 <p className="text-lg">{scanResult.data.points} ponto(s) no total.</p>
@@ -187,10 +214,14 @@ const ScannerTab = ({ projectId: establishmentProjectId }) => {
             )}
 
             {scanResult?.success === false && (
-              <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="text-center"
+              >
                 <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
                 <h3 className="text-2xl font-bold">Falha no Scan</h3>
-                <p className="text-sm mt-2">{scanResult.error}</p>
+                <p className="text-sm mt-2 whitespace-pre-line">{scanResult.error}</p>
               </motion.div>
             )}
 
