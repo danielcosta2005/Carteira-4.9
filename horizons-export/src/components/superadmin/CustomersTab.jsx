@@ -35,8 +35,11 @@ const CustomersTab = ({ projectId }) => {
       toast({ title: "Nenhum cliente para exportar." });
       return;
     }
-    const headers = "id,google_sub,name,email,created_at,visits\n";
-    const csv = customers.map(c => `${c.id},${c.google_sub},"${c.name || ''}","${c.email || ''}",${c.created_at},${c.visits}`).join("\n");
+    const headers = "id,google_sub,name,email,created_at,visits,pass_status\n";
+    const csv = customers.map(c =>
+      `${c.id},${c.google_sub},"${c.name || ''}","${c.email || ''}",${c.created_at},${c.visits},${c.pass_status || ''}`
+    ).join("\n");
+
     const blob = new Blob([headers + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -77,6 +80,7 @@ const CustomersTab = ({ projectId }) => {
                   <th scope="col" className="px-6 py-3">Email</th>
                   <th scope="col" className="px-6 py-3 text-center">Visitas</th>
                   <th scope="col" className="px-6 py-3">Cadastro</th>
+                  <th scope="col" className="px-6 py-3">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -92,6 +96,19 @@ const CustomersTab = ({ projectId }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4">{new Date(customer.created_at).toLocaleDateString()}</td>
+                    <td className="px-6 py-4">
+                        {customer.pass_status === 'installed' ? (
+                          <div className="inline-flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-green-500" />
+                            <span className="font-medium text-green-700">Adicionado</span>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-red-500" />
+                            <span className="font-medium text-red-700">Removido</span>
+                          </div>
+                        )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
