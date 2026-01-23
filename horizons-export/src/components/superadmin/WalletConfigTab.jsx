@@ -31,12 +31,8 @@ const ColorInput = ({ label, ...props }) => (
 );
 
 function formatExpPreview(v) {
-  // No preview você quer "xx/xx" (placeholder), então:
-  // - se tiver algo válido em defaults, você pode mostrar.
-  // - se não, mostra "XX/XX"
   if (!v) return "XX/XX";
   try {
-    // aceita "YYYY-MM-DD" ou ISO
     const d = new Date(v);
     if (Number.isNaN(d.getTime())) return "XX/XX";
     const dd = String(d.getDate()).padStart(2, "0");
@@ -47,16 +43,15 @@ function formatExpPreview(v) {
   }
 }
 
-const PassPreview = ({ formState }) => {
+const PassPreview = ({ formState, qrPreviewUrl }) => {
   const [platform, setPlatform] = useState('apple');
   const {
     title = 'Título do Passe',
-    type = 'generic',
     colors = {},
     images = {},
     dataFields = [],
     sampleValues = {},
-    exp_date, // ✅ novo: vem de wallet_templates.defaults
+    exp_date,
   } = formState;
 
   const { background = '#6c5ce7', text = '#ffffff', label = '#ffffff' } = colors;
@@ -67,13 +62,15 @@ const PassPreview = ({ formState }) => {
 
   const expText = `EXPIRA EM ${formatExpPreview(exp_date)}`;
 
+  // ✅ ESSENCIAL: QR deve apontar pro link compartilhável (claim link)
+  const qrValue = qrPreviewUrl || formState.qr_url || "https://example.com";
+
   return (
     <div className="sticky top-24">
       <div
         style={{ backgroundColor: background }}
         className="w-full max-w-sm mx-auto rounded-2xl flex flex-col text-white shadow-2xl font-sans transition-colors duration-300 overflow-hidden"
       >
-        {/* Conteúdo com padding */}
         <div className="p-4 flex flex-col flex-1 min-h-[420px]">
           <header className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
@@ -91,13 +88,11 @@ const PassPreview = ({ formState }) => {
               </h3>
             </div>
 
-            {/* ✅ No lugar do type */}
             <p style={{ color: label }} className="text-xs uppercase font-semibold">
               {expText}
             </p>
           </header>
 
-          {/* ✅ Apple strip full-bleed (sem espaçamento lateral) */}
           {platform === "apple" && (
             appleStrip ? (
               <div className="-mx-4 mb-4">
@@ -123,22 +118,18 @@ const PassPreview = ({ formState }) => {
             </p>
           </main>
 
-            <footer className="mt-6 flex items-center justify-center">
-              <div className="bg-white p-2 rounded-md">
-                <QRCode
-                  value={formState.universal_url || "https://example.com"}
-                  size={96}
-                  quietZone={0}
-                  bgColor="transparent"
-                />
-              </div>
-            </footer>
-
-
-
+          <footer className="mt-6 flex items-center justify-center">
+            <div className="bg-white p-2 rounded-md">
+              <QRCode
+                value={qrValue}
+                size={96}
+                quietZone={0}
+                bgColor="transparent"
+              />
+            </div>
+          </footer>
         </div>
 
-        {/* ✅ Google hero embaixo (fora do padding) */}
         {platform === "google" && (
           googleHero ? (
             <img
@@ -222,11 +213,13 @@ const PassesList = ({ passes, loading, onAction }) => (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onAction('copy', pass.universal_url)}
+                  // ✅ ESSENCIAL: copiar o link público (qr_url = claim link)
+                  onClick={() => onAction('copy', pass.qr_url)}
                   title="Copiar Link Único"
                 >
                   <LinkIcon className="w-4 h-4" />
                 </Button>
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -235,6 +228,7 @@ const PassesList = ({ passes, loading, onAction }) => (
                 >
                   <Apple className="w-4 h-4" />
                 </Button>
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -263,11 +257,13 @@ const WalletConfigTab = ({ projectId, onBack }) => {
     type: 'loyalty',
     title: '',
     description: '',
-    exp_date: '', // ✅ novo no defaults
+    exp_date: '',
     colors: { background: '#6c5ce7', label: '#ffffff', text: '#ffffff' },
     images: { logo: '', icon: '', googleHero: '', appleStrip: '' },
     dataFields: [],
-    sampleValues: {}
+    sampleValues: {},
+    // opcional: manter um campo local pra preview se quiser
+    qr_url: '',
   });
 
   const fileInputRef = useRef(null);
@@ -405,9 +401,11 @@ const WalletConfigTab = ({ projectId, onBack }) => {
         fields: Object.fromEntries(
           formState.dataFields.map(f => [f.key, formState.sampleValues?.[f.key] ?? ''])
         ),
+        // ✅ ESSENCIAL: server monta qr_url (claim link) com domínio correto
+        app_base_url: window.location.origin,
       };
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-pass`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-teste`, {
         method: 'POST',
         mode: 'cors',
         headers: {
@@ -419,6 +417,9 @@ const WalletConfigTab = ({ projectId, onBack }) => {
 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || `Falha na requisição: ${response.status}`);
+
+      // opcional: guardar no formState só pro preview ficar alinhado
+      setFormState(prev => ({ ...prev, qr_url: result.qr_url || prev.qr_url }));
 
       setGenerationResult(result);
       setIsModalOpen(true);
@@ -536,10 +537,11 @@ const WalletConfigTab = ({ projectId, onBack }) => {
         </div>
 
         <div className="lg:col-span-1">
-          <PassPreview formState={formState} />
+          <PassPreview formState={formState} qrPreviewUrl={generationResult?.qr_url} />
         </div>
       </div>
 
+      {/* ✅ IMPORTANTE: o modal deve mostrar result.qr_url como "Link Único" */}
       <GenerationResultModal isOpen={isModalOpen} setIsOpen={setIsModalOpen} result={generationResult} />
     </div>
   );
